@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pancasila: Ideologi Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Harmoni Nusantara -->
+    <!-- Application Structure Plan: Menggunakan pendekatan tematik dengan navigasi tab/tombol di bagian atas untuk berpindah antar bagian utama: Pengertian Ideologi, Perbandingan Ideologi, Sifat Pancasila (Terbuka), Tingkatan Nilai, dan Fungsi Pancasila. Struktur ini dipilih untuk memecah informasi kompleks menjadi bagian-bagian logis yang mudah dicerna dan dieksplorasi secara non-linear, meningkatkan pemahaman pengguna. Interaksi utama melibatkan pemilihan tab, klik pada kartu/item untuk detail, visualisasi konseptual perbandingan, dan fitur AI (perbandingan dinamis & contoh praksis). -->
+    <!-- Visualization & Content Choices:
+        - Pengertian Ideologi: Teks informatif dengan highlight definisi kunci. Tujuan: Inform. Metode: HTML/CSS. Interaksi: Tidak ada. Justifikasi: Penyajian dasar konsep.
+        - Perbandingan Ideologi (Kapitalisme, Liberalisme, Komunisme, Pancasila): Kartu interaktif, visualisasi perbandingan konseptual, fitur AI ✨ Bandingkan Ideologi. Tujuan: Compare, Inform. Metode: HTML/CSS/JS (kartu), Chart.js (grafik), Gemini API (teks perbandingan). Interaksi: Klik kartu, hover grafik, pilih & klik tombol AI. Justifikasi: Memudahkan perbandingan mendalam. Library: Chart.js (Canvas), Fetch API.
+        - Sifat Pancasila (Terbuka): Teks penjelasan dengan detail tersembunyi. Tujuan: Inform, Organize. Metode: HTML/CSS/JS (accordion/toggle). Interaksi: Klik untuk detail. Justifikasi: Informasi berlapis.
+        - Tingkatan Nilai (Dasar, Instrumental, Praksis): Diagram visual, fitur AI ✨ Contoh Nilai Praksis. Tujuan: Organize, Inform. Metode: HTML/CSS (diagram), Gemini API (contoh teks). Interaksi: Hover tooltip, klik tombol AI. Justifikasi: Visualisasi hierarki & contoh kontekstual. Library: Fetch API.
+        - Fungsi Pancasila: Daftar interaktif. Tujuan: Inform. Metode: HTML/CSS/JS (daftar klik/hover). Interaksi: Klik/hover item. Justifikasi: Penyajian fungsi interaktif.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f5; /* Warm neutral background */
+        }
+        .tab-button {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .tab-button.active {
+            background-color: #60a5fa; /* Accent color */
+            color: white;
+        }
+        .tab-button:not(.active):hover {
+            background-color: #dbeafe;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            border: 2px solid transparent; /* Added for active state */
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .card.selected {
+             border-color: #60a5fa; /* Highlight selected cards */
+        }
+         /* Checkbox Styling */
+        .ideology-checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #4b5563; /* gray-600 */
+            margin-top: 0.5rem;
+        }
+        .ideology-checkbox {
+             margin-right: 0.5rem;
+             cursor: pointer;
+             accent-color: #60a5fa; /* blue-400 */
+        }
+
+        .dimension-item, .value-level-item, .function-item {
+             cursor: pointer;
+             transition: background-color 0.2s;
+        }
+        .dimension-item:hover, .value-level-item:hover, .function-item:hover {
+            background-color: #eef2ff;
+        }
+        .details {
+            display: none;
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            border-left: 2px solid #60a5fa;
+            font-size: 0.9em;
+        }
+         .details.show {
+            display: block;
+         }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+         @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        /* Style untuk diagram Tingkatan Nilai */
+        .value-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem; /* Jarak antar kotak */
+        }
+        .value-box {
+            background-color: #dbeafe; /* Warna dasar */
+            color: #1e3a8a; /* Warna teks */
+            padding: 1rem 1.5rem;
+            border-radius: 0.375rem; /* Sudut rounded */
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s, border 0.3s;
+            position: relative; /* Untuk tooltip */
+            border: 2px solid transparent; /* For highlighting */
+        }
+        .value-box:hover {
+            background-color: #93c5fd;
+            transform: scale(1.02);
+        }
+        .value-box .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #374151; /* Dark gray */
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 110%; /* Posisi di atas elemen */
+            left: 50%;
+            margin-left: -100px; /* Pusatkan tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8em;
+            line-height: 1.3;
+        }
+
+        .value-box:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Style panah */
+         .value-arrow {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 15px solid #9ca3af; /* Warna panah */
+        }
+        /* Penyesuaian lebar kotak untuk hierarki */
+        .value-box.dasar { background-color: #60a5fa; color: white; width: 60%; }
+        .value-box.instrumental { background-color: #93c5fd; color: #1e40af; width: 70%; }
+        .value-box.praksis { background-color: #bfdbfe; color: #1e3a8a; width: 80%; }
+
+         /* Loading indicator */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #60a5fa; /* Blue */
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .gemini-output {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f9fafb; /* gray-50 */
+            border: 1px solid #e5e7eb; /* gray-200 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.9em;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Preserve formatting */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 sm:p-8">
+
+    <div class="container mx-auto max-w-5xl bg-white rounded-lg shadow-lg p-6 sm:p-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-blue-600 mb-6 sm:mb-10">Memahami Pancasila sebagai Ideologi Negara</h1>
+
+        <!-- Navigasi Tab -->
+        <div class="flex flex-wrap justify-center gap-2 mb-6 sm:mb-10 border-b pb-4">
+            <button class="tab-button active text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 rounded-md font-semibold text-gray-700 bg-gray-200" data-tab="pengertian">Pengertian Ideologi</button>
+            <button class="tab-button text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 rounded-md font-semibold text-gray-700 bg-gray-200" data-tab="perbandingan">Perbandingan Ideologi</button>
+            <button class="tab-button text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 rounded-md font-semibold text-gray-700 bg-gray-200" data-tab="sifat">Sifat Terbuka</button>
+            <button class="tab-button text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 rounded-md font-semibold text-gray-700 bg-gray-200" data-tab="tingkatan">Tingkatan Nilai</button>
+            <button class="tab-button text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 rounded-md font-semibold text-gray-700 bg-gray-200" data-tab="fungsi">Fungsi Pancasila</button>
+        </div>
+
+        <!-- Konten Section -->
+        <div id="content-container">
+            <!-- Pengertian Ideologi -->
+            <div id="pengertian" class="content-section active">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">Apa Itu Ideologi?</h2>
+                <p class="mb-4 text-justify leading-relaxed">Bagian ini menjelaskan konsep dasar ideologi. Ideologi adalah fondasi cara pandang suatu kelompok atau bangsa dalam melihat dunia dan mengatur kehidupan bersama. Ini mencakup gagasan, nilai, serta keyakinan yang membentuk cara berpikir dan bertindak.</p>
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p class="mb-2"><strong>Definisi Kunci:</strong> Ideologi adalah <span class="font-semibold text-blue-800">kumpulan gagasan, nilai, dan keyakinan</span> yang menyeluruh dan sistematis, menjadi landasan cara berpikir, bersikap, dan bertindak dalam kehidupan bermasyarakat, berbangsa, dan bernegara.</p>
+                    <p class="mb-2"><strong>Fungsi Utama:</strong> Memberikan <span class="font-semibold text-blue-800">arah normatif</span> (pedoman) bagi penyelenggaraan negara dan <span class="font-semibold text-blue-800">orientasi hidup bersama</span>. Dikenal juga sebagai <span class="italic font-semibold text-blue-800">weltanschauung</span> (pandangan dunia).</p>
+                    <p><strong>Dimensi Ideologi:</strong> Mencakup aspek <span class="font-semibold text-blue-800">empiris</span> (apa yang ada/kenyataan), <span class="font-semibold text-blue-800">normatif</span> (apa yang seharusnya/ideal), dan <span class="font-semibold text-blue-800">idealisme</span> (apa yang dicita-citakan).</p>
+                </div>
+            </div>
+
+            <!-- Perbandingan Ideologi -->
+            <div id="perbandingan" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">Perbandingan Ideologi Dunia dan Pancasila</h2>
+                 <p class="mb-6 text-justify leading-relaxed">Di bagian ini, kita akan membandingkan Pancasila dengan beberapa ideologi besar dunia lainnya seperti Kapitalisme, Liberalisme, dan Komunisme. Perbandingan ini membantu memahami posisi unik Pancasila sebagai jalan tengah yang relevan bagi Indonesia. Pilih dua ideologi untuk dibandingkan menggunakan AI.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                     <!-- Card Kapitalisme -->
+                    <div class="card ideology-card-selector" data-ideology-name="Kapitalisme">
+                        <label class="ideology-checkbox-label">
+                             <input type="checkbox" class="ideology-checkbox mr-2">
+                            <h3 class="text-xl font-semibold text-green-700 mb-1 inline">Kapitalisme</h3>
+                        </label>
+                        <p class="text-sm text-gray-600 ml-6">Fokus pada kepemilikan pribadi dan pasar bebas.</p>
+                        <div class="details mt-2 ml-6 text-sm">
+                            <p><strong>Pengertian:</strong> Sistem ekonomi yang menekankan kepemilikan pribadi atas alat produksi & kebebasan individu mencari keuntungan.</p>
+                            <p><strong>Ciri Utama:</strong> Mekanisme pasar (supply & demand), minim campur tangan negara, kebebasan berusaha & persaingan.</p>
+                            <p><strong>Kelemahan:</strong> Potensi kesenjangan sosial-ekonomi.</p>
+                        </div>
+                    </div>
+                     <!-- Card Liberalisme -->
+                    <div class="card ideology-card-selector" data-ideology-name="Liberalisme">
+                        <label class="ideology-checkbox-label">
+                            <input type="checkbox" class="ideology-checkbox mr-2">
+                             <h3 class="text-xl font-semibold text-yellow-700 mb-1 inline">Liberalisme</h3>
+                        </label>
+                        <p class="text-sm text-gray-600 ml-6">Menekankan kebebasan individu.</p>
+                         <div class="details mt-2 ml-6 text-sm">
+                            <p><strong>Pengertian:</strong> Ideologi yang menekankan kebebasan individu di segala aspek (politik, ekonomi, sosial).</p>
+                            <p><strong>Ciri Utama:</strong> Demokrasi liberal (kebebasan berpendapat, pers, dll), negara sebagai penjaga ketertiban & hak individu, fokus pada HAM & individualisme.</p>
+                            <p><strong>Kelemahan:</strong> Bisa mengabaikan kepentingan kolektif.</p>
+                        </div>
+                    </div>
+                     <!-- Card Komunisme -->
+                    <div class="card ideology-card-selector" data-ideology-name="Komunisme">
+                        <label class="ideology-checkbox-label">
+                            <input type="checkbox" class="ideology-checkbox mr-2">
+                             <h3 class="text-xl font-semibold text-red-700 mb-1 inline">Komunisme</h3>
+                        </label>
+                        <p class="text-sm text-gray-600 ml-6">Menekankan kepemilikan bersama oleh negara.</p>
+                        <div class="details mt-2 ml-6 text-sm">
+                            <p><strong>Pengertian:</strong> Ideologi yang menolak kepemilikan pribadi atas alat produksi, menekankan kepemilikan bersama yang dikelola negara.</p>
+                            <p><strong>Ciri Utama:</strong> Masyarakat tanpa kelas, alat produksi dikuasai negara, kesetaraan penuh & kolektivitas.</p>
+                            <p><strong>Kelemahan:</strong> Cenderung otoriter, membatasi kebebasan individu.</p>
+                        </div>
+                    </div>
+                    <!-- Card Pancasila -->
+                     <div class="card ideology-card-selector" data-ideology-name="Pancasila">
+                         <label class="ideology-checkbox-label">
+                            <input type="checkbox" class="ideology-checkbox mr-2" checked>
+                            <h3 class="text-xl font-semibold text-blue-700 mb-1 inline">Pancasila</h3>
+                        </label>
+                        <p class="text-sm text-gray-600 ml-6">Jalan tengah, kebebasan bertanggung jawab & keadilan sosial.</p>
+                         <div class="details mt-2 ml-6 text-sm show">
+                            <p><strong>Posisi:</strong> Bukan kapitalis, liberalis, atau komunis. Merupakan jalan tengah.</p>
+                            <p><strong>Penekanan:</strong> Keseimbangan antara kebebasan individu yang bertanggung jawab secara sosial dan keadilan sosial bagi seluruh rakyat.</p>
+                            <p><strong>Dasar Filosofis:</strong> Berakar pada nilai-nilai luhur bangsa (Ontologis), terbentuk lewat proses sejarah (Epistemologis), dan menjadi norma serta tujuan bangsa (Aksiologis).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gemini Feature: Compare Ideologies -->
+                <div class="text-center mb-8">
+                     <button id="compareIdeologiesBtn" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        ✨ Bandingkan Ideologi Pilihan
+                    </button>
+                    <span id="compareLoader" class="loader hidden"></span>
+                    <div id="comparisonResult" class="gemini-output text-left hidden"></div>
+                     <p id="compareError" class="text-red-500 text-sm mt-2 hidden"></p>
+                </div>
+
+
+                 <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Visualisasi Perbandingan Konseptual</h3>
+                 <p class="mb-4 text-sm text-center text-gray-600">Grafik ini menyajikan perbandingan konseptual (bukan data kuantitatif) antara ideologi berdasarkan beberapa aspek kunci. Skala: 1 (Rendah) - 3 (Tinggi).</p>
+                 <div class="chart-container">
+                    <canvas id="ideologyComparisonChart"></canvas>
+                </div>
+            </div>
+
+             <!-- Sifat Terbuka -->
+            <div id="sifat" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">Pancasila sebagai Ideologi Terbuka</h2>
+                <p class="mb-4 text-justify leading-relaxed">Bagian ini membahas mengapa Pancasila disebut sebagai ideologi terbuka. Sifat terbuka ini memungkinkan Pancasila untuk tetap relevan dan adaptif terhadap perubahan zaman tanpa kehilangan nilai-nilai intinya. Klik pada setiap dimensi untuk melihat penjelasannya.</p>
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                    <p>Ideologi terbuka adalah ideologi yang <span class="font-semibold text-blue-800">tidak kaku</span>, melainkan dapat <span class="font-semibold text-blue-800">menyesuaikan diri</span> dengan perkembangan zaman dan kebutuhan masyarakat.</p>
+                    <p>Pancasila terbuka karena nilai-nilai dasarnya tetap, namun penerapannya <span class="font-semibold text-blue-800">fleksibel, dinamis, dan reformatif</span> sesuai konteks.</p>
+                </div>
+                 <h3 class="text-xl font-semibold text-gray-700 mb-3">Tiga Dimensi Keterbukaan Pancasila:</h3>
+                 <ul class="space-y-2">
+                    <li class="dimension-item p-3 bg-white rounded shadow-sm border border-gray-200">
+                        <strong class="text-indigo-700">1. Dimensi Idealis</strong>
+                        <div class="details text-gray-600">Mengandung cita-cita yang ingin dicapai dalam berbagai bidang kehidupan bermasyarakat, berbangsa, dan bernegara. Memberikan harapan dan optimisme.</div>
+                    </li>
+                    <li class="dimension-item p-3 bg-white rounded shadow-sm border border-gray-200">
+                        <strong class="text-indigo-700">2. Dimensi Normatif</strong>
+                        <div class="details text-gray-600">Nilai-nilai dasar Pancasila perlu dijabarkan dalam suatu sistem norma atau aturan hukum yang jelas, seperti dalam UUD 1945 dan peraturan perundang-undangan lainnya.</div>
+                    </li>
+                     <li class="dimension-item p-3 bg-white rounded shadow-sm border border-gray-200">
+                        <strong class="text-indigo-700">3. Dimensi Realistis</strong>
+                        <div class="details text-gray-600">Ideologi harus mampu mencerminkan realitas kehidupan yang berkembang dalam masyarakat. Pancasila berakar pada nilai-nilai yang hidup dalam masyarakat Indonesia.</div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tingkatan Nilai -->
+            <div id="tingkatan" class="content-section">
+                 <h2 class="text-2xl font-semibold text-blue-700 mb-4">Tingkatan Nilai dalam Ideologi Pancasila</h2>
+                <p class="mb-6 text-justify leading-relaxed">Ideologi Pancasila memiliki fleksibilitas dalam penerapannya yang tercermin dalam tiga tingkatan nilai. Tingkatan ini menunjukkan bagaimana nilai-nilai dasar yang abstrak diterjemahkan menjadi norma konkret dan dipraktikkan dalam kehidupan nyata. Klik pada kotak untuk penjelasan lebih lanjut dan contoh penerapan Nilai Praksis.</p>
+                 <div class="value-diagram space-y-2 mb-6">
+                    <!-- Nilai Dasar -->
+                    <div class="value-box dasar value-level-item">
+                        <strong class="text-lg">Nilai Dasar</strong>
+                        <span class="tooltip-text">Prinsip fundamental (Ketuhanan, Kemanusiaan, Persatuan, Kerakyatan, Keadilan) dalam Pembukaan UUD 1945. Bersifat tetap dan universal.</span>
+                    </div>
+                    <div class="value-arrow"></div> <!-- Panah ke bawah -->
+                    <!-- Nilai Instrumental -->
+                    <div class="value-box instrumental value-level-item">
+                        <strong class="text-lg">Nilai Instrumental</strong>
+                         <span class="tooltip-text">Penjabaran dari Nilai Dasar berupa kebijakan, strategi, UUD 1945, UU, Perpu, dll. Lebih konkret dan dinamis.</span>
+                    </div>
+                     <div class="value-arrow"></div> <!-- Panah ke bawah -->
+                    <!-- Nilai Praksis -->
+                    <div class="value-box praksis value-level-item">
+                        <strong class="text-lg">Nilai Praksis</strong>
+                        <span class="tooltip-text">Realisasi Nilai Instrumental dalam kehidupan sehari-hari. Merupakan praktik nyata Pancasila oleh individu dan masyarakat.</span>
+                         <!-- Gemini Feature: Contoh Praksis -->
+                        <div class="mt-4 text-center">
+                            <button id="praksisExampleBtn" class="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-1 px-3 rounded-md text-sm shadow-sm transition duration-300">
+                                ✨ Berikan Contoh Nilai Praksis Saat Ini
+                            </button>
+                            <span id="praksisLoader" class="loader hidden"></span>
+                        </div>
+                    </div>
+                </div>
+                 <div id="value-details" class="mt-6 p-4 bg-gray-50 rounded border border-gray-200 text-sm text-gray-700 hidden">
+                    Klik pada salah satu tingkatan nilai di atas untuk melihat penjelasannya di sini.
+                </div>
+                 <div id="praksisResult" class="gemini-output hidden"></div>
+                 <p id="praksisError" class="text-red-500 text-sm mt-2 hidden"></p>
+            </div>
+
+            <!-- Fungsi Pancasila -->
+            <div id="fungsi" class="content-section">
+                 <h2 class="text-2xl font-semibold text-blue-700 mb-4">Fungsi Pancasila sebagai Ideologi</h2>
+                <p class="mb-6 text-justify leading-relaxed">Sebagai ideologi negara, Pancasila memiliki berbagai fungsi penting dalam kehidupan berbangsa dan bernegara di Indonesia. Fungsi-fungsi ini menunjukkan peran sentral Pancasila dalam membentuk karakter, arah, dan identitas bangsa. Klik pada setiap fungsi untuk melihat penjelasannya.</p>
+                <ul class="space-y-3">
+                    <li class="function-item p-4 bg-white rounded shadow-sm border border-gray-200 transition duration-300 ease-in-out hover:bg-indigo-50">
+                        <strong class="text-lg text-purple-700">1. Struktur Kognitif</strong>
+                        <div class="details text-gray-600 text-sm">Menyediakan kerangka berpikir dan dasar pengetahuan bagi bangsa Indonesia untuk memahami dunia, realitas sosial, dan posisinya di tengah masyarakat global.</div>
+                    </li>
+                     <li class="function-item p-4 bg-white rounded shadow-sm border border-gray-200 transition duration-300 ease-in-out hover:bg-indigo-50">
+                        <strong class="text-lg text-purple-700">2. Orientasi Dasar</strong>
+                         <div class="details text-gray-600 text-sm">Membuka wawasan, memberikan makna, serta menunjukkan tujuan atau arah dalam menjalani kehidupan bermasyarakat, berbangsa, dan bernegara.</div>
+                    </li>
+                     <li class="function-item p-4 bg-white rounded shadow-sm border border-gray-200 transition duration-300 ease-in-out hover:bg-indigo-50">
+                        <strong class="text-lg text-purple-700">3. Norma</strong>
+                        <div class="details text-gray-600 text-sm">Menjadi sumber pedoman etika dan moral dalam bersikap serta bertindak. Nilai-nilainya menjadi standar untuk menilai baik buruknya suatu tindakan.</div>
+                    </li>
+                    <li class="function-item p-4 bg-white rounded shadow-sm border border-gray-200 transition duration-300 ease-in-out hover:bg-indigo-50">
+                        <strong class="text-lg text-purple-700">4. Identitas</strong>
+                        <div class="details text-gray-600 text-sm">Memberikan jati diri dan karakter khas bagi bangsa Indonesia yang membedakannya dari bangsa lain. Juga menjadi sumber kekuatan dan penyemangat dalam mencapai cita-cita nasional.</div>
+                    </li>
+                     <li class="function-item p-4 bg-white rounded shadow-sm border border-gray-200 transition duration-300 ease-in-out hover:bg-indigo-50">
+                        <strong class="text-lg text-purple-700">5. Pendidikan</strong>
+                         <div class="details text-gray-600 text-sm">Berfungsi sebagai acuan dalam membentuk karakter, kepribadian, dan etika warga negara yang baik, bertanggung jawab, dan sesuai dengan nilai-nilai Pancasila.</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-button');
+        const sections = document.querySelectorAll('.content-section');
+        const ideologyCardSelectors = document.querySelectorAll('.ideology-card-selector');
+        const ideologyCheckboxes = document.querySelectorAll('.ideology-checkbox');
+        const compareBtn = document.getElementById('compareIdeologiesBtn');
+        const compareLoader = document.getElementById('compareLoader');
+        const comparisonResultDiv = document.getElementById('comparisonResult');
+        const compareErrorMsg = document.getElementById('compareError');
+
+        const dimensionItems = document.querySelectorAll('.dimension-item');
+        const valueLevelItems = document.querySelectorAll('.value-level-item');
+        const functionItems = document.querySelectorAll('.function-item');
+        const valueDetailsContainer = document.getElementById('value-details');
+
+        const praksisBtn = document.getElementById('praksisExampleBtn');
+        const praksisLoader = document.getElementById('praksisLoader');
+        const praksisResultDiv = document.getElementById('praksisResult');
+        const praksisErrorMsg = document.getElementById('praksisError');
+
+
+        // --- Gemini API Call Function ---
+        const apiKey = ""; // Keep empty for automatic handling
+        const apiUrlFlash = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        async function callGemini(prompt, useSearch = false, retries = 3, delay = 1000) {
+            console.log("Calling Gemini API. Prompt:", prompt, "Search:", useSearch); // Log start
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+            };
+            if (useSearch) {
+                payload.tools = [{ "google_search": {} }];
+            }
+
+            try {
+                const response = await fetch(apiUrlFlash, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                 console.log("API Response Status:", response.status); // Log status
+
+                if (!response.ok) {
+                     if (response.status === 429 && retries > 0) { // Handle throttling with backoff
+                        console.warn(`API throttled (429). Retrying in ${delay}ms... (${retries} retries left)`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return callGemini(prompt, useSearch, retries - 1, delay * 2); // Exponential backoff
+                    }
+                    // Log detailed error for non-429 issues
+                    const errorBody = await response.text();
+                    console.error("API Error Response Body:", errorBody);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log("API Response JSON:", result); // Log successful response
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    console.log("API Success: Text received.");
+                    return candidate.content.parts[0].text;
+                } else {
+                     // Check for safety ratings or blocked prompts
+                    if (candidate?.finishReason === 'SAFETY') {
+                         console.error("API call blocked for safety reasons.");
+                         throw new Error("Konten diblokir karena alasan keamanan.");
+                    }
+                    if(result.promptFeedback?.blockReason){
+                         console.error(`API prompt blocked: ${result.promptFeedback.blockReason}`);
+                         throw new Error(`Permintaan diblokir: ${result.promptFeedback.blockReason}`);
+                    }
+                    console.error("Unexpected API response structure:", result);
+                    throw new Error("Gagal mendapatkan teks dari respons API.");
+                }
+            } catch (error) {
+                 // Log specific error before potentially retrying or throwing
+                 console.error("Error during API call:", error);
+                 if (retries > 0 && error.message.includes('HTTP error! status: 429')) {
+                     console.warn(`Retrying after 429 error caught in outer catch... (${retries} retries left)`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return callGemini(prompt, useSearch, retries - 1, delay * 2);
+                 }
+                 console.error("Final error calling Gemini API after retries (if any):", error);
+                throw error; // Re-throw the error to be caught by the calling function
+            }
+        }
+
+
+        // --- Chart Initialization ---
+        const ideologyComparisonData = {
+            labels: ['Kepemilikan Pribadi', 'Kebebasan Individu', 'Peran Negara', 'Kolektivitas', 'Keadilan Sosial'],
+            datasets: [
+                { label: 'Kapitalisme', data: [3, 3, 1, 1, 1], backgroundColor: 'rgba(75, 192, 192, 0.6)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 },
+                { label: 'Liberalisme', data: [3, 3, 1, 1, 1], backgroundColor: 'rgba(255, 206, 86, 0.6)', borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1 },
+                { label: 'Komunisme', data: [1, 1, 3, 3, 3], backgroundColor: 'rgba(255, 99, 132, 0.6)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 },
+                { label: 'Pancasila', data: [2, 2, 2, 2, 3], backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }
+            ]
+        };
+        let comparisonChart = null;
+
+        function initializeChart() {
+             const canvasElement = document.getElementById('ideologyComparisonChart');
+            if (!canvasElement) return; // Exit if canvas not found
+            const ctx = canvasElement.getContext('2d');
+            if (comparisonChart) {
+                comparisonChart.destroy();
+            }
+            comparisonChart = new Chart(ctx, {
+                type: 'bar', data: ideologyComparisonData,
+                options: { responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 3, ticks: { stepSize: 1, callback: (v) => v === 1 ? 'Rendah' : v === 2 ? 'Sedang' : v === 3 ? 'Tinggi' : '' } } },
+                    plugins: { tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y === 1 ? 'Rendah' : c.parsed.y === 2 ? 'Sedang' : 'Tinggi'}` } }, title: { display: false }, legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        // --- Tab Navigation ---
+        function activateTab(tabId) {
+            tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === tabId));
+            sections.forEach(section => section.classList.toggle('active', section.id === tabId));
+            if (tabId === 'perbandingan') setTimeout(initializeChart, 50); // Delay chart init slightly
+        }
+        tabs.forEach(tab => tab.addEventListener('click', () => activateTab(tab.dataset.tab)));
+
+        // --- Detail Toggles ---
+        function toggleDetails(element) {
+            const details = element.querySelector('.details');
+            if (details) details.classList.toggle('show');
+        }
+        dimensionItems.forEach(item => item.addEventListener('click', () => toggleDetails(item)));
+        functionItems.forEach(item => item.addEventListener('click', () => toggleDetails(item)));
+
+         // --- Ideology Card Selection & Comparison Logic ---
+        ideologyCardSelectors.forEach(card => {
+             const checkbox = card.querySelector('.ideology-checkbox');
+             // Clicking the card toggles the checkbox and highlights
+             card.addEventListener('click', (e) => {
+                 // Prevent toggling checkbox if label/checkbox itself is clicked
+                 if (e.target.type !== 'checkbox' && e.target.tagName !== 'LABEL') {
+                    checkbox.checked = !checkbox.checked;
+                    updateCompareButtonState(); // Update button state
+                    card.classList.toggle('selected', checkbox.checked);
+                 }
+             });
+              // Clicking the checkbox/label only toggles the checkbox
+             checkbox.addEventListener('change', () => {
+                 updateCompareButtonState();
+                 card.classList.toggle('selected', checkbox.checked);
+             });
+             // Also add click listener to the label to prevent card click logic
+             const label = card.querySelector('label');
+             if(label) {
+                 label.addEventListener('click', (e) => {
+                     e.stopPropagation(); // Prevent card click when label is clicked
+                 });
+             }
+        });
+
+         function getSelectedIdeologies() {
+            const selected = [];
+            ideologyCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    selected.push(cb.closest('.ideology-card-selector').dataset.ideologyName);
+                }
+            });
+            return selected;
+         }
+
+         function updateCompareButtonState() {
+             const selectedCount = getSelectedIdeologies().length;
+             compareBtn.disabled = selectedCount !== 2;
+             compareErrorMsg.classList.add('hidden'); // Hide error on selection change
+         }
+
+        compareBtn.addEventListener('click', async () => {
+            const selectedIdeologies = getSelectedIdeologies();
+            if (selectedIdeologies.length !== 2) {
+                 compareErrorMsg.textContent = "Silakan pilih tepat dua ideologi untuk dibandingkan.";
+                 compareErrorMsg.classList.remove('hidden');
+                return;
+            }
+
+            compareLoader.classList.remove('hidden');
+            comparisonResultDiv.classList.add('hidden');
+            compareErrorMsg.classList.add('hidden');
+            compareBtn.disabled = true;
+
+            const prompt = `Bandingkan dan kontraskan ideologi ${selectedIdeologies[0]} dan ${selectedIdeologies[1]}. Fokus pada perbedaan kunci, persamaan (jika ada), dan posisi relatif Pancasila jika salah satunya adalah Pancasila. Berikan ringkasan dalam 2-3 paragraf singkat. Gunakan Bahasa Indonesia.`;
+
+            try {
+                const result = await callGemini(prompt);
+                comparisonResultDiv.textContent = result;
+                comparisonResultDiv.classList.remove('hidden');
+            } catch (error) {
+                 console.error("Error in compareBtn click handler:", error); // Log error specific to this button
+                 compareErrorMsg.textContent = `Gagal membandingkan: ${error.message}`;
+                 compareErrorMsg.classList.remove('hidden');
+            } finally {
+                compareLoader.classList.add('hidden');
+                compareBtn.disabled = false; // Re-enable button after attempt
+                updateCompareButtonState(); // Ensure button state is correct based on selection
+            }
+        });
+
+
+        // --- Tingkatan Nilai Logic ---
+        const valueExplanations = {
+            dasar: "<strong>Nilai Dasar:</strong> Prinsip fundamental (Ketuhanan, Kemanusiaan, Persatuan, Kerakyatan, Keadilan) dalam Pembukaan UUD 1945. Bersifat tetap, universal, dan menjadi sumber nilai lainnya.",
+            instrumental: "<strong>Nilai Instrumental:</strong> Penjabaran lebih lanjut dari Nilai Dasar berupa kebijakan, strategi, tujuan, lembaga pelaksana (UUD 1945 pasal-pasal, UU, Perpu, dll). Sifatnya lebih konkret dan dapat disesuaikan dengan kebutuhan zaman.",
+            praksis: "<strong>Nilai Praksis:</strong> Realisasi Nilai Instrumental dalam pengalaman dan praktik nyata kehidupan sehari-hari bermasyarakat, berbangsa, dan bernegara. Ini adalah bagaimana Pancasila dijalankan oleh setiap individu."
+        };
+
+        valueLevelItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                 // Prevent button click from triggering this if inside
+                 if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    console.log("Button clicked, ignoring value-level-item click.");
+                    return;
+                }
+                const levelType = Array.from(item.classList).find(cls => ['dasar', 'instrumental', 'praksis'].includes(cls));
+                 console.log("Value level item clicked:", levelType);
+                if (levelType && valueExplanations[levelType]) {
+                    valueDetailsContainer.innerHTML = valueExplanations[levelType];
+                    valueDetailsContainer.classList.remove('hidden'); // Show details
+                } else {
+                    valueDetailsContainer.classList.add('hidden'); // Hide if not found
+                }
+                valueLevelItems.forEach(i => i.style.border = '2px solid transparent'); // Reset borders
+                item.style.border = '2px solid #3b82f6';
+            });
+        });
+
+         // --- Gemini Feature: Praksis Examples ---
+         praksisBtn.addEventListener('click', async () => {
+             console.log("Praksis example button clicked."); // Log button click
+            praksisLoader.classList.remove('hidden');
+            praksisResultDiv.classList.add('hidden');
+            praksisErrorMsg.classList.add('hidden');
+            praksisBtn.disabled = true;
+
+             // Menggunakan Google Search Grounding untuk contoh kontemporer
+            const prompt = "Berikan 3 contoh konkret dan relevan mengenai penerapan Nilai Praksis Pancasila dalam kehidupan masyarakat Indonesia saat ini atau dalam beberapa tahun terakhir. Jelaskan secara singkat bagaimana contoh tersebut mencerminkan nilai instrumental dan nilai dasar Pancasila. Gunakan Bahasa Indonesia.";
+
+             try {
+                const result = await callGemini(prompt, true); // Set useSearch to true
+                praksisResultDiv.textContent = result;
+                praksisResultDiv.classList.remove('hidden');
+                 console.log("Praksis examples successfully loaded."); // Log success
+            } catch (error) {
+                 console.error("Error in praksisBtn click handler:", error); // Log error specific to this button
+                 praksisErrorMsg.textContent = `Gagal mendapatkan contoh: ${error.message}`;
+                 praksisErrorMsg.classList.remove('hidden');
+            } finally {
+                praksisLoader.classList.add('hidden');
+                praksisBtn.disabled = false;
+                 console.log("Praksis example process finished."); // Log finish
+            }
+         });
+
+
+        // Initial setup
+        activateTab('pengertian');
+        updateCompareButtonState(); // Initialize compare button state
+
+    </script>
+</body>
+</html>
